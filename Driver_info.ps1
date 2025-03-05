@@ -11,7 +11,7 @@ param (
 
     [int]$Last_modified_date = 0,
 
-    [switch]$v,  # Verbose switch
+    [switch]$v, # Verbose switch
     [switch]$h  # Help switch
 )
 
@@ -34,13 +34,15 @@ if (-not $drivers_path_input) {
 }
 
 # Function to Process Individual .inf Files
-function Process-InfFile {
+function Process_InfFile {
     param (
         [string]$inf_file_FullName,
         [string]$inf_file_BaseName,
         [string]$type_report,
         [string]$file_type_export,
-        [string]$output_path
+        [string]$output_path,
+        [string]$csvFile,
+        [string]$logFile
     )
 
     $infverif = "infverif.exe"
@@ -53,26 +55,29 @@ function Process-InfFile {
 
     # Export based on file type
     switch ($file_type_export) {
-        'txt'    { $target += " | Out-File '$output_path\$inf_file_BaseName.txt'" }
+        'txt' { $target += " | Out-File '$output_path\$inf_file_BaseName.txt'" }
         'Clixml' { $target += " | Export-Clixml '$output_path\$inf_file_BaseName.Clixml'" }
-        'All'    { $target += " | Tee-Object '$output_path\$inf_file_BaseName.txt' | Export-Clixml '$output_path\$inf_file_BaseName.Clixml'" }
+        'All' { $target += " | Tee-Object '$output_path\$inf_file_BaseName.txt' | Export-Clixml '$output_path\$inf_file_BaseName.Clixml'" }
     }
 
-    # Log processed files to a text file
-    $logFile = "$(Get-Location)\processed_files.log"
-    if (-not (Test-Path $logFile)) {
-        Set-Content -Path $logFile -Value "Log initialized: $(Get-Date)"  # Create and initialize the log file if not exists
-    }
+   
+    $folderName = (Get-Item $inf_file_FullName).Directory.Name
+    $fileName = (Get-Item $inf_file_FullName).Name
+    $path = Split-Path $inf_file_FullName -Parent
 
     try {
-        Invoke-Expression $target
+        Invoke-Expression $target 
+        "Processed,$folderName,$fileName,$inf_file_BaseName.Clixml,$path" | Add-Content -Path $csvFile
         Add-Content -Path $logFile -Value "Processed: $inf_file_FullName"
         if ($v) { Write-Host "Processed: $inf_file_FullName" -ForegroundColor Green }
     }
     catch {
+        "Failed,$folderName,$fileName,$inf_file_BaseName.Clixml,$path" | Add-Content -Path $csvFile
         Add-Content -Path $logFile -Value "Failed: $inf_file_FullName"
         if ($v) { Write-Host "Failed to process: $inf_file_FullName" -ForegroundColor Red }
     }
+        
+    
 }
 
 # Main Script Execution
@@ -89,16 +94,31 @@ try {
     }
     New-Item -ItemType Directory -Path $output_path | Out-Null
 
+ 
+
+    $csvFile = "$(Get-Location)\processed_files.csv"
+    New-Item -Path $csvFile -ItemType File -Force
+
+
+    $logFile = "$(Get-Location)\processed_files.log"
+    New-Item -Path $logFile -ItemType File -Force
+    Add-Content -Path $logFile -Value "Log initialized: $(Get-Date)"  
+
+    
+
     # Retrieve .inf files from the specified path
     $inf_files = Get-ChildItem -Path $drivers_path_input -Recurse -Filter '*.inf'
+
 
     # Process each .inf file
     foreach ($inf_file in $inf_files) {
         # Check for last modified date if specified
         if ($Last_modified_date -eq 0 -or $inf_file.LastWriteTime -ge (Get-Date).AddDays(-$Last_modified_date)) {
-            Process-InfFile -inf_file_FullName $inf_file.FullName -inf_file_BaseName $inf_file.BaseName -type_report $type_report -file_type_export $file_type_export -output_path $output_path
+            Process_InfFile -inf_file_FullName $inf_file.FullName -inf_file_BaseName $inf_file.BaseName  -type_report $type_report -file_type_export $file_type_export -output_path $output_path   -csvFile $csvFile  -logFile $logFile
         }
     }
+
+    
 
     Write-Host "Processing completed." -ForegroundColor Cyan
 }
