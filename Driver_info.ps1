@@ -98,6 +98,7 @@ try {
 
     $csvFile = "$(Get-Location)\processed_files.csv"
     New-Item -Path $csvFile -ItemType File -Force
+    Add-Content -Path $csvFile -Value "Status,Folder,Inf,Clixml,Path"
 
 
     $logFile = "$(Get-Location)\processed_files.log"
