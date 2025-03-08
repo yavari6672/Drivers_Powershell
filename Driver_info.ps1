@@ -60,19 +60,14 @@ function Process_InfFile {
         'All' { $target += " | Tee-Object '$output_path\$inf_file_BaseName.txt' | Export-Clixml '$output_path\$inf_file_BaseName.Clixml'" }
     }
 
-   
-    $folderName = (Get-Item $inf_file_FullName).Directory.Name
-    $fileName = (Get-Item $inf_file_FullName).Name
-    $path = Split-Path $inf_file_FullName -Parent
-
     try {
         Invoke-Expression $target 
-        "Processed,$folderName,$fileName,$inf_file_BaseName.Clixml,$path" | Add-Content -Path $csvFile
+        "Processed,$inf_file_FullName,$output_path\$inf_file_BaseName.Clixml" | Add-Content -Path $csvFile
         Add-Content -Path $logFile -Value "Processed: $inf_file_FullName"
         if ($v) { Write-Host "Processed: $inf_file_FullName" -ForegroundColor Green }
     }
     catch {
-        "Failed,$folderName,$fileName,$inf_file_BaseName.Clixml,$path" | Add-Content -Path $csvFile
+        "Failed,$inf_file_FullName,$output_path\$inf_file_BaseName.Clixml" | Add-Content -Path $csvFile
         Add-Content -Path $logFile -Value "Failed: $inf_file_FullName"
         if ($v) { Write-Host "Failed to process: $inf_file_FullName" -ForegroundColor Red }
     }
@@ -98,7 +93,7 @@ try {
 
     $csvFile = "$(Get-Location)\processed_files.csv"
     New-Item -Path $csvFile -ItemType File -Force
-    Add-Content -Path $csvFile -Value "Status,Folder,Inf,Clixml,Path"
+    Add-Content -Path $csvFile -Value "Status,Inf,Clixml"
 
 
     $logFile = "$(Get-Location)\processed_files.log"
