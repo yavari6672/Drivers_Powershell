@@ -59,17 +59,17 @@ function Process_InfFile {
         'Clixml' { $target += " | Export-Clixml '$output_path\$inf_file_BaseName.Clixml'" }
         'All' { $target += " | Tee-Object '$output_path\$inf_file_BaseName.txt' | Export-Clixml '$output_path\$inf_file_BaseName.Clixml'" }
     }
-
+    Start-Sleep -Seconds 1
     try {
         Invoke-Expression $target 
-        "Processed,$inf_file_FullName,$output_path\$inf_file_BaseName.Clixml" | Add-Content -Path $csvFile
+        "Processed,$inf_file_FullName,$output_path\$inf_file_BaseName.Clixml" | Out-File -FilePath $csvFile -Append -Encoding UTF8
         Add-Content -Path $logFile -Value "Processed: $inf_file_FullName"
-        if ($v) { Write-Host "Processed: $inf_file_FullName" -ForegroundColor Green }
+        Write-Host "Processed: $inf_file_FullName" -ForegroundColor Green 
     }
     catch {
-        "Failed,$inf_file_FullName,$output_path\$inf_file_BaseName.Clixml" | Add-Content -Path $csvFile
+        "Failed,$inf_file_FullName,$output_path\$inf_file_BaseName.Clixml" | Out-File -FilePath $csvFile -Append -Encoding UTF8
         Add-Content -Path $logFile -Value "Failed: $inf_file_FullName"
-        if ($v) { Write-Host "Failed to process: $inf_file_FullName" -ForegroundColor Red }
+        Write-Host "Failed to process: $inf_file_FullName" -ForegroundColor Red 
     }
         
     
